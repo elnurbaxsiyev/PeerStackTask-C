@@ -7,6 +7,7 @@
 #define NAME_SIZE 50
 #define SURNAME_SIZE 50
 #define EMAIL_SIZE 100
+#define DATA_FILE "students.csv"
 
 #define VALIDATE_TEXT  1
 #define VALIDATE_AGE   2
@@ -31,6 +32,8 @@ void showStudents(void);
 int findStudentById(int id);
 void updateStudent(void);
 void deleteStudent(void);
+void saveStudents(void);
+void loadStudents(void);
 
 int isBlank(const char *s);
 int containsComma(const char *s);
@@ -101,6 +104,61 @@ int validateInput(const char *value, int type) {
     }
 }
 
+void saveStudents(void) {
+    FILE *file;
+    int i;
+
+    file = fopen(DATA_FILE, "w");
+    if (file == NULL) {
+        printf("Fayl acilmadi.\n");
+        return;
+    }
+
+    for (i = 0; i < studentCount; i++) {
+        fprintf(file, "%d,%s,%s,%d,%s\n",
+                students[i].id,
+                students[i].name,
+                students[i].surname,
+                students[i].age,
+                students[i].email);
+    }
+
+    fclose(file);
+}
+
+void loadStudents(void) {
+    FILE *file;
+    char line[256];
+
+    file = fopen(DATA_FILE, "r");
+    if (file == NULL) {
+        return;
+    }
+
+    studentCount = 0;
+    nextId = 1;
+
+    while (fgets(line, sizeof(line), file) != NULL && studentCount < MAX_STUDENTS) {
+        int result;
+
+        result = sscanf(line, "%d,%49[^,],%49[^,],%d,%99[^\n]",
+                        &students[studentCount].id,
+                        students[studentCount].name,
+                        students[studentCount].surname,
+                        &students[studentCount].age,
+                        students[studentCount].email);
+
+        if (result == 5) {
+            if (students[studentCount].id >= nextId) {
+                nextId = students[studentCount].id + 1;
+            }
+            studentCount++;
+        }
+    }
+
+    fclose(file);
+}
+
 int findStudentById(int id) {
     int i;
 
@@ -164,6 +222,8 @@ void addStudent(void) {
 
     studentCount++;
     nextId++;
+
+    saveStudents();
 }
 
 void showStudents(void) {
@@ -243,6 +303,8 @@ void updateStudent(void) {
     } while (!validateInput(students[index].email, VALIDATE_EMAIL));
 
     printf("Student yenilendi.\n");
+
+    saveStudents();
 }
 
 void deleteStudent(void) {
@@ -272,6 +334,8 @@ void deleteStudent(void) {
     studentCount--;
 
     printf("Student silindi.\n");
+
+    saveStudents();
 }
 
 void handleChoice(int choice) {
@@ -298,6 +362,8 @@ void handleChoice(int choice) {
 
 int main(void) {
     int choice = 0;
+
+    loadStudents();
 
     while (choice != 5) {
         showMenu();
