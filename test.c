@@ -12,6 +12,15 @@
 #define VALIDATE_TEXT  1
 #define VALIDATE_AGE   2
 #define VALIDATE_EMAIL 3
+#define ID_WIDTH 5
+#define AGE_WIDTH 3
+#define HEADER_FORMAT "%-5s|%-50s|%-50s|%-3s|%-100s\n"
+#define RECORD_FORMAT "%05d|%-50s|%-50s|%03d|%-100s\n"
+#define ID_START 0
+#define NAME_START (ID_START + ID_WIDTH + 1)
+#define SURNAME_START (NAME_START + NAME_SIZE + 1)
+#define AGE_START (SURNAME_START + SURNAME_SIZE + 1)
+#define EMAIL_START (AGE_START + AGE_WIDTH + 1)
 
 typedef struct {
     int id;
@@ -39,6 +48,9 @@ int isBlank(const char *s);
 int containsComma(const char *s);
 int isNumber(const char *s);
 int validateInput(const char *value, int type);
+int containsPipe(const char *s);
+void trimRight(char *str);
+void copyFixedField(char *dest, int destSize, const char *src, int start, int width);
 
 void showMenu(void) {
     printf("\n=== Student Manager ===\n");
@@ -56,6 +68,16 @@ int isBlank(const char *s) {
 int containsComma(const char *s) {
     while (*s) {
         if (*s == ',') {
+            return 1;
+        }
+        s++;
+    }
+    return 0;
+}
+
+int containsPipe(const char *s) {
+    while (*s) {
+        if (*s == '|') {
             return 1;
         }
         s++;
@@ -85,7 +107,9 @@ int validateInput(const char *value, int type) {
 
     switch (type) {
         case VALIDATE_TEXT:
-            return !isBlank(value) && !containsComma(value);
+            return !isBlank(value) &&
+                   !containsComma(value) &&
+                   !containsPipe(value);
 
         case VALIDATE_AGE:
             if (!isNumber(value)) {
@@ -97,11 +121,34 @@ int validateInput(const char *value, int type) {
         case VALIDATE_EMAIL:
             return !isBlank(value) &&
                    !containsComma(value) &&
+                   !containsPipe(value) &&
                    strchr(value, '@') != NULL;
 
         default:
             return 0;
     }
+}
+
+void trimRight(char *str) {
+    int len = strlen(str);
+
+    while (len > 0 && (str[len - 1] == ' ' || str[len - 1] == '\n' || str[len - 1] == '\r')) {
+        str[len - 1] = '\0';
+        len--;
+    }
+}
+
+void copyFixedField(char *dest, int destSize, const char *src, int start, int width) {
+    int copyLen = width;
+
+    if (copyLen > destSize - 1) {
+        copyLen = destSize - 1;
+    }
+
+    strncpy(dest, src + start, copyLen);
+    dest[copyLen] = '\0';
+
+    trimRight(dest);
 }
 
 void saveStudents(void) {
@@ -114,8 +161,10 @@ void saveStudents(void) {
         return;
     }
 
+    fprintf(file, HEADER_FORMAT, "ID", "NAME", "SURNAME", "AGE", "EMAIL");
+
     for (i = 0; i < studentCount; i++) {
-        fprintf(file, "%d,%s,%s,%d,%s\n",
+        fprintf(file, RECORD_FORMAT,
                 students[i].id,
                 students[i].name,
                 students[i].surname,
@@ -138,17 +187,25 @@ void loadStudents(void) {
     studentCount = 0;
     nextId = 1;
 
+    if (fgets(line, sizeof(line), file) == NULL) {
+        fclose(file);
+        return;
+    }
+
     while (fgets(line, sizeof(line), file) != NULL && studentCount < MAX_STUDENTS) {
-        int result;
+        char idStr[ID_WIDTH + 1];
+        char ageStr[AGE_WIDTH + 1];
 
-        result = sscanf(line, "%d,%49[^,],%49[^,],%d,%99[^\n]",
-                        &students[studentCount].id,
-                        students[studentCount].name,
-                        students[studentCount].surname,
-                        &students[studentCount].age,
-                        students[studentCount].email);
+        copyFixedField(idStr, sizeof(idStr), line, ID_START, ID_WIDTH);
+        copyFixedField(students[studentCount].name, NAME_SIZE, line, NAME_START, NAME_SIZE);
+        copyFixedField(students[studentCount].surname, SURNAME_SIZE, line, SURNAME_START, SURNAME_SIZE);
+        copyFixedField(ageStr, sizeof(ageStr), line, AGE_START, AGE_WIDTH);
+        copyFixedField(students[studentCount].email, EMAIL_SIZE, line, EMAIL_START, EMAIL_SIZE);
 
-        if (result == 5) {
+        students[studentCount].id = atoi(idStr);
+        students[studentCount].age = atoi(ageStr);
+
+        if (students[studentCount].id > 0) {
             if (students[studentCount].id >= nextId) {
                 nextId = students[studentCount].id + 1;
             }
@@ -218,7 +275,7 @@ void addStudent(void) {
         }
     } while (!validateInput(students[studentCount].email, VALIDATE_EMAIL));
 
-    printf("Student elave olundu. ID = %d\n", students[studentCount].id);
+    printf("Student elave olundu. ID = %05d\n", students[studentCount].id);
 
     studentCount++;
     nextId++;
@@ -236,7 +293,7 @@ void showStudents(void) {
 
     printf("\n=== Student List ===\n");
     for (i = 0; i < studentCount; i++) {
-        printf("ID: %d\n", students[i].id);
+        printf("ID: %05d\n", students[i].id);
         printf("Ad: %s\n", students[i].name);
         printf("Soyad: %s\n", students[i].surname);
         printf("Yas: %d\n", students[i].age);
