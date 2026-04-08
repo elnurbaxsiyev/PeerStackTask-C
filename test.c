@@ -12,10 +12,13 @@
 #define VALIDATE_TEXT  1
 #define VALIDATE_AGE   2
 #define VALIDATE_EMAIL 3
+
 #define ID_WIDTH 5
 #define AGE_WIDTH 3
+
 #define HEADER_FORMAT "%-5s|%-50s|%-50s|%-3s|%-100s\n"
 #define RECORD_FORMAT "%05d|%-50s|%-50s|%03d|%-100s\n"
+
 #define ID_START 0
 #define NAME_START (ID_START + ID_WIDTH + 1)
 #define SURNAME_START (NAME_START + NAME_SIZE + 1)
@@ -43,12 +46,13 @@ void updateStudent(void);
 void deleteStudent(void);
 void saveStudents(void);
 void loadStudents(void);
+void sortStudentsById(void);
 
 int isBlank(const char *s);
 int containsComma(const char *s);
+int containsPipe(const char *s);
 int isNumber(const char *s);
 int validateInput(const char *value, int type);
-int containsPipe(const char *s);
 void trimRight(char *str);
 void copyFixedField(char *dest, int destSize, const char *src, int start, int width);
 
@@ -132,7 +136,8 @@ int validateInput(const char *value, int type) {
 void trimRight(char *str) {
     int len = strlen(str);
 
-    while (len > 0 && (str[len - 1] == ' ' || str[len - 1] == '\n' || str[len - 1] == '\r')) {
+    while (len > 0 &&
+           (str[len - 1] == ' ' || str[len - 1] == '\n' || str[len - 1] == '\r')) {
         str[len - 1] = '\0';
         len--;
     }
@@ -151,9 +156,27 @@ void copyFixedField(char *dest, int destSize, const char *src, int start, int wi
     trimRight(dest);
 }
 
+void sortStudentsById(void) {
+    int i;
+    int j;
+    Student temp;
+
+    for (i = 0; i < studentCount - 1; i++) {
+        for (j = i + 1; j < studentCount; j++) {
+            if (students[i].id > students[j].id) {
+                temp = students[i];
+                students[i] = students[j];
+                students[j] = temp;
+            }
+        }
+    }
+}
+
 void saveStudents(void) {
     FILE *file;
     int i;
+
+    sortStudentsById();
 
     file = fopen(DATA_FILE, "w");
     if (file == NULL) {
@@ -213,6 +236,7 @@ void loadStudents(void) {
         }
     }
 
+    sortStudentsById();
     fclose(file);
 }
 
@@ -293,6 +317,7 @@ void showStudents(void) {
 
     printf("\n=== Student List ===\n");
     for (i = 0; i < studentCount; i++) {
+        printf("RecordNo: %d\n", i);
         printf("ID: %05d\n", students[i].id);
         printf("Ad: %s\n", students[i].name);
         printf("Soyad: %s\n", students[i].surname);
