@@ -241,17 +241,26 @@ void loadStudents(void) {
 }
 
 int findStudentById(int id) {
-    int i;
+    int left = 0;
+    int right = studentCount - 1;
+    int mid;
 
-    for (i = 0; i < studentCount; i++) {
-        if (students[i].id == id) {
-            return i;
+    while (left <= right) {
+        mid = left + (right - left) / 2;
+
+        if (students[mid].id == id) {
+            return mid;
+        }
+
+        if (students[mid].id < id) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
         }
     }
 
     return -1;
 }
-
 void addStudent(void) {
     char ageStr[20];
 
