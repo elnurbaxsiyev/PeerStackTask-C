@@ -1,9 +1,16 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #define MAX_STUDENTS 100
 #define NAME_SIZE 50
 #define SURNAME_SIZE 50
 #define EMAIL_SIZE 100
+
+#define VALIDATE_TEXT  1
+#define VALIDATE_AGE   2
+#define VALIDATE_EMAIL 3
 
 typedef struct {
     int id;
@@ -25,6 +32,11 @@ int findStudentById(int id);
 void updateStudent(void);
 void deleteStudent(void);
 
+int isBlank(const char *s);
+int containsComma(const char *s);
+int isNumber(const char *s);
+int validateInput(const char *value, int type);
+
 void showMenu(void) {
     printf("\n=== Student Manager ===\n");
     printf("1 -- Istifadeci elave et\n");
@@ -32,6 +44,61 @@ void showMenu(void) {
     printf("3 -- Istifadecileri goster\n");
     printf("4 -- Secilmis istifadecini yenile\n");
     printf("5 -- Proqramdan cix\n");
+}
+
+int isBlank(const char *s) {
+    return s[0] == '\0';
+}
+
+int containsComma(const char *s) {
+    while (*s) {
+        if (*s == ',') {
+            return 1;
+        }
+        s++;
+    }
+    return 0;
+}
+
+int isNumber(const char *s) {
+    int i = 0;
+
+    if (s[0] == '\0') {
+        return 0;
+    }
+
+    while (s[i]) {
+        if (!isdigit((unsigned char)s[i])) {
+            return 0;
+        }
+        i++;
+    }
+
+    return 1;
+}
+
+int validateInput(const char *value, int type) {
+    int age;
+
+    switch (type) {
+        case VALIDATE_TEXT:
+            return !isBlank(value) && !containsComma(value);
+
+        case VALIDATE_AGE:
+            if (!isNumber(value)) {
+                return 0;
+            }
+            age = atoi(value);
+            return age > 0 && age <= 150;
+
+        case VALIDATE_EMAIL:
+            return !isBlank(value) &&
+                   !containsComma(value) &&
+                   strchr(value, '@') != NULL;
+
+        default:
+            return 0;
+    }
 }
 
 int findStudentById(int id) {
@@ -47,6 +114,8 @@ int findStudentById(int id) {
 }
 
 void addStudent(void) {
+    char ageStr[20];
+
     if (studentCount >= MAX_STUDENTS) {
         printf("Yer yoxdur. Yeni student elave etmek olmur.\n");
         return;
@@ -54,17 +123,42 @@ void addStudent(void) {
 
     students[studentCount].id = nextId;
 
-    printf("Adi daxil edin: ");
-    scanf("%49s", students[studentCount].name);
+    do {
+        printf("Adi daxil edin: ");
+        scanf("%49s", students[studentCount].name);
 
-    printf("Soyadi daxil edin: ");
-    scanf("%49s", students[studentCount].surname);
+        if (!validateInput(students[studentCount].name, VALIDATE_TEXT)) {
+            printf("Ad yanlisdir.\n");
+        }
+    } while (!validateInput(students[studentCount].name, VALIDATE_TEXT));
 
-    printf("Yasi daxil edin: ");
-    scanf("%d", &students[studentCount].age);
+    do {
+        printf("Soyadi daxil edin: ");
+        scanf("%49s", students[studentCount].surname);
 
-    printf("Email daxil edin: ");
-    scanf("%99s", students[studentCount].email);
+        if (!validateInput(students[studentCount].surname, VALIDATE_TEXT)) {
+            printf("Soyad yanlisdir.\n");
+        }
+    } while (!validateInput(students[studentCount].surname, VALIDATE_TEXT));
+
+    do {
+        printf("Yasi daxil edin: ");
+        scanf("%19s", ageStr);
+
+        if (!validateInput(ageStr, VALIDATE_AGE)) {
+            printf("Yas yanlisdir.\n");
+        }
+    } while (!validateInput(ageStr, VALIDATE_AGE));
+    students[studentCount].age = atoi(ageStr);
+
+    do {
+        printf("Email daxil edin: ");
+        scanf("%99s", students[studentCount].email);
+
+        if (!validateInput(students[studentCount].email, VALIDATE_EMAIL)) {
+            printf("Email yanlisdir.\n");
+        }
+    } while (!validateInput(students[studentCount].email, VALIDATE_EMAIL));
 
     printf("Student elave olundu. ID = %d\n", students[studentCount].id);
 
@@ -94,6 +188,7 @@ void showStudents(void) {
 void updateStudent(void) {
     int id;
     int index;
+    char ageStr[20];
 
     if (studentCount == 0) {
         printf("Yenilemek ucun student yoxdur.\n");
@@ -110,17 +205,42 @@ void updateStudent(void) {
         return;
     }
 
-    printf("Yeni adi daxil edin: ");
-    scanf("%49s", students[index].name);
+    do {
+        printf("Yeni adi daxil edin: ");
+        scanf("%49s", students[index].name);
 
-    printf("Yeni soyadi daxil edin: ");
-    scanf("%49s", students[index].surname);
+        if (!validateInput(students[index].name, VALIDATE_TEXT)) {
+            printf("Ad yanlisdir.\n");
+        }
+    } while (!validateInput(students[index].name, VALIDATE_TEXT));
 
-    printf("Yeni yasi daxil edin: ");
-    scanf("%d", &students[index].age);
+    do {
+        printf("Yeni soyadi daxil edin: ");
+        scanf("%49s", students[index].surname);
 
-    printf("Yeni email daxil edin: ");
-    scanf("%99s", students[index].email);
+        if (!validateInput(students[index].surname, VALIDATE_TEXT)) {
+            printf("Soyad yanlisdir.\n");
+        }
+    } while (!validateInput(students[index].surname, VALIDATE_TEXT));
+
+    do {
+        printf("Yeni yasi daxil edin: ");
+        scanf("%19s", ageStr);
+
+        if (!validateInput(ageStr, VALIDATE_AGE)) {
+            printf("Yas yanlisdir.\n");
+        }
+    } while (!validateInput(ageStr, VALIDATE_AGE));
+    students[index].age = atoi(ageStr);
+
+    do {
+        printf("Yeni email daxil edin: ");
+        scanf("%99s", students[index].email);
+
+        if (!validateInput(students[index].email, VALIDATE_EMAIL)) {
+            printf("Email yanlisdir.\n");
+        }
+    } while (!validateInput(students[index].email, VALIDATE_EMAIL));
 
     printf("Student yenilendi.\n");
 }
