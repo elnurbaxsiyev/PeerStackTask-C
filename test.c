@@ -2,12 +2,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <io.h>
 
 #define MAX_STUDENTS 100
 #define NAME_SIZE 50
 #define SURNAME_SIZE 50
 #define EMAIL_SIZE 100
-#define DATA_FILE "students.csv"
+#define DATA_FILE "students.txt"
 
 #define VALIDATE_TEXT  1
 #define VALIDATE_AGE   2
@@ -24,6 +25,10 @@
 #define SURNAME_START (NAME_START + NAME_SIZE + 1)
 #define AGE_START (SURNAME_START + SURNAME_SIZE + 1)
 #define EMAIL_START (AGE_START + AGE_WIDTH + 1)
+#define RECORD_LINE_SIZE 256
+
+#define RECORD_SIZE (ID_WIDTH + 1 + NAME_SIZE + 1 + SURNAME_SIZE + 1 + AGE_WIDTH + 1 + EMAIL_SIZE + 1)
+#define HEADER_SIZE RECORD_SIZE
 
 typedef struct {
     int id;
@@ -71,9 +76,7 @@ int isBlank(const char *s) {
 
 int containsComma(const char *s) {
     while (*s) {
-        if (*s == ',') {
-            return 1;
-        }
+        if (*s == ',') return 1;
         s++;
     }
     return 0;
@@ -81,9 +84,7 @@ int containsComma(const char *s) {
 
 int containsPipe(const char *s) {
     while (*s) {
-        if (*s == '|') {
-            return 1;
-        }
+        if (*s == '|') return 1;
         s++;
     }
     return 0;
@@ -91,43 +92,26 @@ int containsPipe(const char *s) {
 
 int isNumber(const char *s) {
     int i = 0;
-
-    if (s[0] == '\0') {
-        return 0;
-    }
-
+    if (s[0] == '\0') return 0;
     while (s[i]) {
-        if (!isdigit((unsigned char)s[i])) {
-            return 0;
-        }
+        if (!isdigit((unsigned char)s[i])) return 0;
         i++;
     }
-
     return 1;
 }
 
 int validateInput(const char *value, int type) {
     int age;
-
     switch (type) {
         case VALIDATE_TEXT:
-            return !isBlank(value) &&
-                   !containsComma(value) &&
-                   !containsPipe(value);
-
+            return !isBlank(value) && !containsComma(value) && !containsPipe(value);
         case VALIDATE_AGE:
-            if (!isNumber(value)) {
-                return 0;
-            }
+            if (!isNumber(value)) return 0;
             age = atoi(value);
             return age > 0 && age <= 150;
-
         case VALIDATE_EMAIL:
-            return !isBlank(value) &&
-                   !containsComma(value) &&
-                   !containsPipe(value) &&
-                   strchr(value, '@') != NULL;
-
+            return !isBlank(value) && !containsComma(value) &&
+                   !containsPipe(value) && strchr(value, '@') != NULL;
         default:
             return 0;
     }
@@ -135,7 +119,6 @@ int validateInput(const char *value, int type) {
 
 void trimRight(char *str) {
     int len = strlen(str);
-
     while (len > 0 &&
            (str[len - 1] == ' ' || str[len - 1] == '\n' || str[len - 1] == '\r')) {
         str[len - 1] = '\0';
@@ -145,22 +128,15 @@ void trimRight(char *str) {
 
 void copyFixedField(char *dest, int destSize, const char *src, int start, int width) {
     int copyLen = width;
-
-    if (copyLen > destSize - 1) {
-        copyLen = destSize - 1;
-    }
-
+    if (copyLen > destSize - 1) copyLen = destSize - 1;
     strncpy(dest, src + start, copyLen);
     dest[copyLen] = '\0';
-
     trimRight(dest);
 }
 
 void sortStudentsById(void) {
-    int i;
-    int j;
+    int i, j;
     Student temp;
-
     for (i = 0; i < studentCount - 1; i++) {
         for (j = i + 1; j < studentCount; j++) {
             if (students[i].id > students[j].id) {
@@ -178,7 +154,7 @@ void saveStudents(void) {
 
     sortStudentsById();
 
-    file = fopen(DATA_FILE, "w");
+    file = fopen(DATA_FILE, "wb");
     if (file == NULL) {
         printf("Fayl acilmadi.\n");
         return;
@@ -200,12 +176,10 @@ void saveStudents(void) {
 
 void loadStudents(void) {
     FILE *file;
-    char line[256];
+    char line[RECORD_SIZE];
 
-    file = fopen(DATA_FILE, "r");
-    if (file == NULL) {
-        return;
-    }
+    file = fopen(DATA_FILE, "rb");
+    if (file == NULL) return;
 
     studentCount = 0;
     nextId = 1;
@@ -229,9 +203,8 @@ void loadStudents(void) {
         students[studentCount].age = atoi(ageStr);
 
         if (students[studentCount].id > 0) {
-            if (students[studentCount].id >= nextId) {
+            if (students[studentCount].id >= nextId)
                 nextId = students[studentCount].id + 1;
-            }
             studentCount++;
         }
     }
@@ -248,19 +221,14 @@ int findStudentById(int id) {
     while (left <= right) {
         mid = left + (right - left) / 2;
 
-        if (students[mid].id == id) {
-            return mid;
-        }
-
-        if (students[mid].id < id) {
-            left = mid + 1;
-        } else {
-            right = mid - 1;
-        }
+        if (students[mid].id == id) return mid;
+        if (students[mid].id < id) left  = mid + 1;
+        else                       right = mid - 1;
     }
 
     return -1;
 }
+
 void addStudent(void) {
     char ageStr[20];
 
@@ -274,38 +242,30 @@ void addStudent(void) {
     do {
         printf("Adi daxil edin: ");
         scanf("%49s", students[studentCount].name);
-
-        if (!validateInput(students[studentCount].name, VALIDATE_TEXT)) {
+        if (!validateInput(students[studentCount].name, VALIDATE_TEXT))
             printf("Ad yanlisdir.\n");
-        }
     } while (!validateInput(students[studentCount].name, VALIDATE_TEXT));
 
     do {
         printf("Soyadi daxil edin: ");
         scanf("%49s", students[studentCount].surname);
-
-        if (!validateInput(students[studentCount].surname, VALIDATE_TEXT)) {
+        if (!validateInput(students[studentCount].surname, VALIDATE_TEXT))
             printf("Soyad yanlisdir.\n");
-        }
     } while (!validateInput(students[studentCount].surname, VALIDATE_TEXT));
 
     do {
         printf("Yasi daxil edin: ");
         scanf("%19s", ageStr);
-
-        if (!validateInput(ageStr, VALIDATE_AGE)) {
+        if (!validateInput(ageStr, VALIDATE_AGE))
             printf("Yas yanlisdir.\n");
-        }
     } while (!validateInput(ageStr, VALIDATE_AGE));
     students[studentCount].age = atoi(ageStr);
 
     do {
         printf("Email daxil edin: ");
         scanf("%99s", students[studentCount].email);
-
-        if (!validateInput(students[studentCount].email, VALIDATE_EMAIL)) {
+        if (!validateInput(students[studentCount].email, VALIDATE_EMAIL))
             printf("Email yanlisdir.\n");
-        }
     } while (!validateInput(students[studentCount].email, VALIDATE_EMAIL));
 
     printf("Student elave olundu. ID = %05d\n", students[studentCount].id);
@@ -337,9 +297,9 @@ void showStudents(void) {
 }
 
 void updateStudent(void) {
-    int id;
-    int index;
+    int id, index;
     char ageStr[20];
+    FILE *file;
 
     if (studentCount == 0) {
         printf("Yenilemek ucun student yoxdur.\n");
@@ -347,10 +307,9 @@ void updateStudent(void) {
     }
 
     printf("Yenilenecek studentin ID-sini daxil edin: ");
-    scanf("%d", &id);
+    if (scanf("%d", &id) != 1) { id = -1; while (getchar() != '\n'); }
 
     index = findStudentById(id);
-
     if (index == -1) {
         printf("Bu ID ile student tapilmadi.\n");
         return;
@@ -359,49 +318,54 @@ void updateStudent(void) {
     do {
         printf("Yeni adi daxil edin: ");
         scanf("%49s", students[index].name);
-
-        if (!validateInput(students[index].name, VALIDATE_TEXT)) {
+        if (!validateInput(students[index].name, VALIDATE_TEXT))
             printf("Ad yanlisdir.\n");
-        }
     } while (!validateInput(students[index].name, VALIDATE_TEXT));
 
     do {
         printf("Yeni soyadi daxil edin: ");
         scanf("%49s", students[index].surname);
-
-        if (!validateInput(students[index].surname, VALIDATE_TEXT)) {
+        if (!validateInput(students[index].surname, VALIDATE_TEXT))
             printf("Soyad yanlisdir.\n");
-        }
     } while (!validateInput(students[index].surname, VALIDATE_TEXT));
 
     do {
         printf("Yeni yasi daxil edin: ");
         scanf("%19s", ageStr);
-
-        if (!validateInput(ageStr, VALIDATE_AGE)) {
+        if (!validateInput(ageStr, VALIDATE_AGE))
             printf("Yas yanlisdir.\n");
-        }
     } while (!validateInput(ageStr, VALIDATE_AGE));
     students[index].age = atoi(ageStr);
 
     do {
         printf("Yeni email daxil edin: ");
         scanf("%99s", students[index].email);
-
-        if (!validateInput(students[index].email, VALIDATE_EMAIL)) {
+        if (!validateInput(students[index].email, VALIDATE_EMAIL))
             printf("Email yanlisdir.\n");
-        }
     } while (!validateInput(students[index].email, VALIDATE_EMAIL));
 
-    printf("Student yenilendi.\n");
+    file = fopen(DATA_FILE, "rb+");
+    if (file == NULL) {
+        printf("Fayl acilmadi.\n");
+        return;
+    }
 
-    saveStudents();
+    fseek(file, (long)HEADER_SIZE + (long)index * RECORD_SIZE, SEEK_SET);
+    fprintf(file, RECORD_FORMAT,
+            students[index].id,
+            students[index].name,
+            students[index].surname,
+            students[index].age,
+            students[index].email);
+
+    fclose(file);
+    printf("Student yenilendi.\n");
 }
 
 void deleteStudent(void) {
-    int id;
-    int index;
-    int i;
+    int id, index, i;
+    FILE *file;
+    char line[RECORD_SIZE];
 
     if (studentCount == 0) {
         printf("Silmek ucun student yoxdur.\n");
@@ -409,45 +373,47 @@ void deleteStudent(void) {
     }
 
     printf("Silinecek studentin ID-sini daxil edin: ");
-    scanf("%d", &id);
+    if (scanf("%d", &id) != 1) { id = -1; while (getchar() != '\n'); }
 
     index = findStudentById(id);
-
     if (index == -1) {
         printf("Bu ID ile student tapilmadi.\n");
         return;
     }
 
-    for (i = index; i < studentCount - 1; i++) {
-        students[i] = students[i + 1];
+    file = fopen(DATA_FILE, "rb+");
+    if (file == NULL) {
+        printf("Fayl acilmadi.\n");
+        return;
     }
 
+    for (i = index + 1; i < studentCount; i++) {
+        fseek(file, (long)HEADER_SIZE + (long)i * RECORD_SIZE, SEEK_SET);
+        fread(line, 1, RECORD_SIZE, file);
+
+        fseek(file, (long)HEADER_SIZE + (long)(i - 1) * RECORD_SIZE, SEEK_SET);
+        fwrite(line, 1, RECORD_SIZE, file);
+    }
+
+    fflush(file);
+    _chsize(fileno(file), (long)HEADER_SIZE + (long)(studentCount - 1) * RECORD_SIZE);
+    fclose(file);
+
+    for (i = index; i < studentCount - 1; i++)
+        students[i] = students[i + 1];
     studentCount--;
 
     printf("Student silindi.\n");
-
-    saveStudents();
 }
 
 void handleChoice(int choice) {
     switch (choice) {
-        case 1:
-            addStudent();
-            break;
-        case 2:
-            deleteStudent();
-            break;
-        case 3:
-            showStudents();
-            break;
-        case 4:
-            updateStudent();
-            break;
-        case 5:
-            printf("Programdan cixilir...\n");
-            break;
-        default:
-            printf("Yanlis secim etdiniz.\n");
+        case 1: addStudent();   break;
+        case 2: deleteStudent(); break;
+        case 3: showStudents(); break;
+        case 4: updateStudent(); break;
+        case 5: printf("Programdan cixilir...\n"); break;
+        default: printf("Yanlis secim etdiniz.\n");
     }
 }
 
@@ -459,8 +425,10 @@ int main(void) {
     while (choice != 5) {
         showMenu();
         printf("Seciminizi daxil edin: ");
-        scanf("%d", &choice);
-
+        if (scanf("%d", &choice) != 1) {
+            choice = 0;
+            while (getchar() != '\n');
+        }
         handleChoice(choice);
     }
 
