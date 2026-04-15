@@ -57,11 +57,11 @@ int containsComma(const char *s);
 int containsPipe(const char *s);
 int isNumber(const char *s);
 int isOnlyLetters(const char *s);
-int startsWithUppercase(const char *s);
 int validateIdString(const char *s);
 int validateInput(const char *value, int type);
 void trimRight(char *str);
 void copyFixedField(char *dest, int destSize, const char *src, int start, int width);
+void normalizeName(char *s);
 
 void showMenu(void) {
     printf("\n=== Student Manager ===\n");
@@ -118,9 +118,16 @@ int isOnlyLetters(const char *s) {
     return 1;
 }
 
-int startsWithUppercase(const char *s) {
-    if (s[0] == '\0') return 0;
-    return isupper((unsigned char)s[0]) != 0;
+void normalizeName(char *s) {
+    int i;
+
+    if (s[0] == '\0') return;
+
+    s[0] = toupper((unsigned char)s[0]);
+
+    for (i = 1; s[i] != '\0'; i++) {
+        s[i] = tolower((unsigned char)s[i]);
+    }
 }
 
 int validateIdString(const char *s) {
@@ -135,8 +142,7 @@ int validateInput(const char *value, int type) {
             return !isBlank(value) &&
                    !containsComma(value) &&
                    !containsPipe(value) &&
-                   isOnlyLetters(value) &&
-                   startsWithUppercase(value);
+                   isOnlyLetters(value);
 
         case VALIDATE_AGE:
             if (!isNumber(value)) return 0;
@@ -244,6 +250,9 @@ void loadStudents(void) {
         students[studentCount].age = atoi(ageStr);
 
         if (students[studentCount].id > 0) {
+            normalizeName(students[studentCount].name);
+            normalizeName(students[studentCount].surname);
+
             if (students[studentCount].id >= nextId) {
                 nextId = students[studentCount].id + 1;
             }
@@ -284,18 +293,20 @@ void addStudent(void) {
     do {
         printf("Adi daxil edin: ");
         scanf("%49s", students[studentCount].name);
+        normalizeName(students[studentCount].name);
 
         if (!validateInput(students[studentCount].name, VALIDATE_TEXT)) {
-            printf("Ad yalniz herflerden ibaret olmalidir ve ilk herfi boyuk olmalidir.\n");
+            printf("Ad yalniz herflerden ibaret olmalidir.\n");
         }
     } while (!validateInput(students[studentCount].name, VALIDATE_TEXT));
 
     do {
         printf("Soyadi daxil edin: ");
         scanf("%49s", students[studentCount].surname);
+        normalizeName(students[studentCount].surname);
 
         if (!validateInput(students[studentCount].surname, VALIDATE_TEXT)) {
-            printf("Soyad yalniz herflerden ibaret olmalidir ve ilk herfi boyuk olmalidir.\n");
+            printf("Soyad yalniz herflerden ibaret olmalidir.\n");
         }
     } while (!validateInput(students[studentCount].surname, VALIDATE_TEXT));
 
@@ -378,18 +389,20 @@ void updateStudent(void) {
     do {
         printf("Yeni adi daxil edin: ");
         scanf("%49s", students[index].name);
+        normalizeName(students[index].name);
 
         if (!validateInput(students[index].name, VALIDATE_TEXT)) {
-            printf("Ad yalniz herflerden ibaret olmalidir ve ilk herfi boyuk olmalidir.\n");
+            printf("Ad yalniz herflerden ibaret olmalidir.\n");
         }
     } while (!validateInput(students[index].name, VALIDATE_TEXT));
 
     do {
         printf("Yeni soyadi daxil edin: ");
         scanf("%49s", students[index].surname);
+        normalizeName(students[index].surname);
 
         if (!validateInput(students[index].surname, VALIDATE_TEXT)) {
-            printf("Soyad yalniz herflerden ibaret olmalidir ve ilk herfi boyuk olmalidir.\n");
+            printf("Soyad yalniz herflerden ibaret olmalidir.\n");
         }
     } while (!validateInput(students[index].surname, VALIDATE_TEXT));
 
